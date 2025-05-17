@@ -38,35 +38,39 @@ const GroupRegistration = () => {
     setFormValues({ ...formValues, [e.target.name]: e.target.value });
   };
 
-  const onFinish = async (values) => {
+  const onFinish = async (e) => {
+    e.preventDefault();
+    
+    // Format the data to match backend expectations
+    const formattedData = {
+      moduleName: formValues.moduleName,
+      teamMembers: [1, 2, 3, 4].map(index => ({
+        name: formValues[`teamMember${index}Name`],
+        studentId: formValues[`teamMember${index}Id`]
+      }))
+    };
+
     try {
       const response = await axios.post(
-        "http://localhost:3001/admin/semester/register",
-        {
-          ...values,
-          selectedModules,
-          totalFee
-        }
+        "http://localhost:3001/admin/team/register",
+        formattedData
       );
 
       if (response.data.success) {
-        message.success("Semester Registration successful!");
-        // Redirect to payment page with registration details
-        navigate('/payment-upload', { 
-          state: { 
-            registrationDetails: response.data.data 
-          } 
-        });
+        message.success("Team registration successful!");
+        setIsModalOpen(false);
+        setFormValues({});
+        // Refresh team data
+        const teamResponse = await axios.get("http://localhost:3001/admin/team/details");
+        if (teamResponse.data.success) {
+          setTeamData(teamResponse.data.data);
+        }
       } else {
         message.error("Registration failed: " + response.data.message);
       }
     } catch (error) {
       console.error("Registration error:", error);
-      if (error.code === 'ERR_NETWORK') {
-        message.error("Could not connect to the server. Please check if the backend is running.");
-      } else {
-        message.error("Something went wrong during registration.");
-      }
+      message.error("Something went wrong during registration. Please try again.");
     }
   };
 
